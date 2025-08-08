@@ -36,3 +36,10 @@ def search(query: str, k: int = 5):
     metas = res.get("metadatas", [[]])[0]
     ids   = res.get("ids", [[]])[0]
     return list(zip(ids, docs, metas))
+
+def export_all():
+    res = COLL.get(include=["documents","metadatas","ids"])
+    return [{"id":i,"text":d,"meta":m} for i,d,m in zip(res["ids"],res["documents"],res["metadatas"])]
+
+def reset_all():
+    COLL.delete(where={})  # removes all docs
