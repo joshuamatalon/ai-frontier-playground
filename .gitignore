@@ -1,3 +1,4 @@
+@"
 # === Python bytecode ===
 __pycache__/
 *.py[cod]
@@ -47,3 +48,4 @@ memories.jsonl
 .vscode/
 .idea/
 *.swp
+"@ | Out-File -Encoding utf8 .gitignore
