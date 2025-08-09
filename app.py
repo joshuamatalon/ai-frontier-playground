@@ -1,4 +1,3 @@
-# app.py
 import json, io
 import streamlit as st
 from vec_memory import upsert_note, search, export_all, reset_all

@@ -1,24 +1,21 @@
-# rag_chain.py
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
 from langchain_openai import ChatOpenAI
-from langchain.schema import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage
 from vec_memory import search, upsert_note
 from tools import calculator
 
 api_key = os.getenv("OPENAI_API_KEY")
-if not api_key: raise RuntimeError("OPENAI_API_KEY missing in .env")
+if not api_key:
+    raise RuntimeError("OPENAI_API_KEY missing in .env")
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=api_key)
 
-SYS = (
-"You are Josh's Cognitive Companion. Use CONTEXT if relevant. "
-"If the user question requires arithmetic, use the calculator tool. "
-"Be concise; if info is missing, ask one clarifying question. "
-"After answering, propose 0–3 new atomic facts as lines starting with 'FACT:'."
-)
+SYS = ("You are Josh's Cognitive Companion. Use CONTEXT if relevant. "
+       "If arithmetic is needed, use the calculator tool. Be concise; if info is missing, ask ONE clarifying question. "
+       "After answering, list any new facts as lines starting with 'FACT:'.")
 
 def _decide_calc(q: str) -> bool:
     m = [SystemMessage(content="Reply YES or NO only."),
@@ -41,7 +38,7 @@ def answer(query: str, k: int = 5):
 
     msgs = [
         SystemMessage(content=SYS),
-        HumanMessage(content=f"CONTEXT:\n{ctx}\n{tool_note}\n\nQUESTION: {query}\n—\nReply, then list any new facts as 'FACT: ...'")
+        HumanMessage(content=f"CONTEXT:\n{ctx}\n{tool_note}\n\nQUESTION: {query}\nReply, then list new facts as 'FACT: ...'")
     ]
     resp = llm.invoke(msgs).content
 
