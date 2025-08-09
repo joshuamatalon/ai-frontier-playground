@@ -1,6 +1,7 @@
 import json, io
 import streamlit as st
-from vec_memory import upsert_note, search, export_all, reset_all
+
+from memory_backend import upsert_note, search, export_all, reset_all
 from rag_chain import answer
 from ingestors import ingest_pdf_bytes, ingest_txt_bytes, ingest_docx_bytes
 from tools import calculator
@@ -64,5 +65,5 @@ with col2:
         hits = search(qq or "test", k=5)
         for i,(id_,doc,meta) in enumerate(hits,1):
             st.markdown(f"**{i}. id:** `{id_}`")
-            st.write((doc[:300] + "…") if len(doc)>300 else doc)
+            st.write((doc[:400] + "…") if len(doc)>400 else doc)
             if meta: st.caption(meta)

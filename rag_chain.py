@@ -5,7 +5,7 @@ load_dotenv()
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-from vec_memory import search, upsert_note
+from memory_backend import search, upsert_note     # <-- changed
 from tools import calculator
 
 api_key = os.getenv("OPENAI_API_KEY")
@@ -21,7 +21,6 @@ SYS = (
 )
 
 def _decide_calc(q: str) -> bool:
-    # Heuristic for when to try calculator
     triggers = ["+", "-", "*", "/", "%", "^", "sum", "total", "difference", "times", "multiply", "divide", "add", "subtract"]
     return any(t in q for t in triggers)
 

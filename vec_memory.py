@@ -3,63 +3,93 @@ import os, uuid
 from typing import List, Tuple, Dict, Any
 from pathlib import Path
 from dotenv import load_dotenv
+from openai import OpenAI
+from pinecone import Pinecone, ServerlessSpec
 
+# --- env ---
 ENV_PATH = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=ENV_PATH, override=False)
 
-import chromadb
-from chromadb.config import Settings
-from openai import OpenAI
+OPENAI_API_KEY   = os.getenv("OPENAI_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_ENV     = os.getenv("PINECONE_ENV", "us-east-1")
+INDEX_NAME       = os.getenv("PINECONE_INDEX", "cca-memories")
+EMBED_MODEL      = os.getenv("EMBED_MODEL", "text-embedding-3-small")
+EMBED_DIM        = int(os.getenv("EMBED_DIM", "1536"))  # text-embedding-3-small = 1536
 
-DATA_DIR = "data"
-COLL_NAME = "cca_memories"
-os.makedirs(DATA_DIR, exist_ok=True)
+if not OPENAI_API_KEY:
+    raise RuntimeError("OPENAI_API_KEY missing.")
+if not PINECONE_API_KEY:
+    raise RuntimeError("PINECONE_API_KEY missing.")
 
-api_key = os.getenv("OPENAI_API_KEY")
-if not api_key:
-    raise RuntimeError(f"OPENAI_API_KEY missing in .env at {ENV_PATH} or environment")
+# --- clients ---
+oa = OpenAI(api_key=OPENAI_API_KEY)
+pc = Pinecone(api_key=PINECONE_API_KEY)
 
-# --- OpenAI client (no langchain-openai here) ---
-oa = OpenAI(api_key=api_key)
+# --- ensure index exists (serverless) ---
+try:
+    index_names = set(pc.list_indexes().names())
+except Exception:
+    index_names = set(i["name"] for i in pc.list_indexes())
 
-class OpenAIEmbedFn:
-    """Chroma expects __call__(self, input:list[str]) -> list[list[float]] and .name()."""
-    def __call__(self, input):
-        if not input:
-            return []
-        # batch once; OpenAI accepts list[str]
-        resp = oa.embeddings.create(model="text-embedding-3-small", input=list(input))
-        return [d.embedding for d in resp.data]
-    def name(self):
-        return "openai_client_embedder_t3_small"
+if INDEX_NAME not in index_names:
+    pc.create_index(
+        name=INDEX_NAME,
+        dimension=EMBED_DIM,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region=PINECONE_ENV),
+    )
 
-embed_fn = OpenAIEmbedFn()
+index = pc.Index(INDEX_NAME)
 
-client = chromadb.PersistentClient(path=DATA_DIR, settings=Settings(allow_reset=True))
-COLL = client.get_or_create_collection(name=COLL_NAME, embedding_function=embed_fn)
+# --- embeddings ---
+def _embed(texts: List[str]) -> List[List[float]]:
+    if not texts:
+        return []
+    resp = oa.embeddings.create(model=EMBED_MODEL, input=texts)
+    return [d.embedding for d in resp.data]
 
-def upsert_note(text: str, meta: Dict[str, Any] | None=None) -> str:
+# --- public API (unchanged signature) ---
+def upsert_note(text: str, meta: Dict[str, Any] | None = None) -> str:
     _id = str(uuid.uuid4())
-    COLL.add(documents=[text], metadatas=[meta or {}], ids=[_id])
+    vec = _embed([text])[0]
+    index.upsert(vectors=[{"id": _id, "values": vec, "metadata": {"text": text, **(meta or {})}}])
     return _id
 
 def upsert_many(chunks: List[str], meta: Dict[str, Any]) -> List[str]:
     if not chunks:
         return []
-    ids = [str(uuid.uuid4()) for _ in chunks]
-    COLL.add(documents=chunks, metadatas=[meta]*len(chunks), ids=ids)
+    ids  = [str(uuid.uuid4()) for _ in chunks]
+    vecs = _embed(chunks)
+    index.upsert(vectors=[
+        {"id": i, "values": v, "metadata": {"text": t, **meta}}
+        for i, v, t in zip(ids, vecs, chunks)
+    ])
     return ids
 
 def search(query: str, k: int = 5) -> List[Tuple[str, str, Dict[str, Any]]]:
-    res = COLL.query(query_texts=[query], n_results=max(1, k))
-    docs  = res.get("documents", [[]])[0]
-    metas = res.get("metadatas", [[]])[0]
-    ids   = res.get("ids", [[]])[0]
-    return list(zip(ids, docs, metas))
+    qv = _embed([query])[0]
+    res = index.query(vector=qv, top_k=max(1, k), include_metadata=True)
+    out = []
+    for m in res.matches:
+        meta = dict(m.metadata or {})
+        text = meta.pop("text", "")
+        out.append((m.id, text, meta))
+    return out
 
 def export_all():
-    res = COLL.get(include=["documents","metadatas","ids"])
-    return [{"id": i, "text": d, "meta": m} for i,d,m in zip(res["ids"], res["documents"], res["metadatas"])]
+    # Pinecone has no full-scan API here; stub for parity.
+    return []
 
 def reset_all():
-    COLL.delete(where={})
+    # Fast reset by recreating the index.
+    try:
+        pc.delete_index(INDEX_NAME)
+    except Exception:
+        pass
+    pc.create_index(
+        name=INDEX_NAME,
+        dimension=EMBED_DIM,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region=PINECONE_ENV),
+    )
