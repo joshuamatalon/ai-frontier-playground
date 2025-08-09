@@ -1,0 +1,50 @@
+{
+  "summary": {
+    "n": 3,
+    "recall_rate": 0.667,
+    "answer_rate": 0.667,
+    "latency_ms_avg": 2163.9,
+    "latency_ms_p95": 2743.7
+  },
+  "results": [
+    {
+      "q": "What is my 18\u201324 month objective?",
+      "recall": true,
+      "answer_ok": true,
+      "latency_ms": 2743.7,
+      "used": [
+        "2bca0a9a-3fdd-4a7a-99e5-6aded634a251",
+        "2adc66aa-bfed-4837-9798-f9eba0c98ef3",
+        "a03d452a-b1fd-42b6-a7e7-07c8f17044aa",
+        "71723b60-54cb-4429-b731-418f1a03ccd5",
+        "6dcb6d5a-3e3a-4825-bdd1-f6fb23e2cf62"
+      ]
+    },
+    {
+      "q": "List one of my Phase 1 tools.",
+      "recall": true,
+      "answer_ok": true,
+      "latency_ms": 1736.1,
+      "used": [
+        "2adc66aa-bfed-4837-9798-f9eba0c98ef3",
+        "a03d452a-b1fd-42b6-a7e7-07c8f17044aa",
+        "2bca0a9a-3fdd-4a7a-99e5-6aded634a251",
+        "084c39c5-2c0f-45e6-ad6a-64693825b8f0",
+        "71723b60-54cb-4429-b731-418f1a03ccd5"
+      ]
+    },
+    {
+      "q": "What is my monthly student loan payment?",
+      "recall": false,
+      "answer_ok": false,
+      "latency_ms": 2011.9,
+      "used": [
+        "2bca0a9a-3fdd-4a7a-99e5-6aded634a251",
+        "2adc66aa-bfed-4837-9798-f9eba0c98ef3",
+        "084c39c5-2c0f-45e6-ad6a-64693825b8f0",
+        "4520c557-1e98-4bd1-9dde-856904d5b02d",
+        "71723b60-54cb-4429-b731-418f1a03ccd5"
+      ]
+    }
+  ]
+}
