@@ -42,6 +42,11 @@ with st.sidebar:
         for row in data: buff.write(json.dumps(row, ensure_ascii=False) + "\n")
         st.download_button("Download memories.jsonl", buff.getvalue(), file_name="memories.jsonl")
 
+    st.subheader("Quick Calculator")
+    expr = st.text_input("Expression (e.g., 12*(5+3)/4)")
+    if st.button("Compute") and expr.strip():
+        st.write(calculator(expr))
+
 col1, col2 = st.columns([2,1])
 
 with col1:
@@ -61,8 +66,3 @@ with col2:
             st.markdown(f"**{i}. id:** `{id_}`")
             st.write((doc[:300] + "…") if len(doc)>300 else doc)
             if meta: st.caption(meta)
-
-    st.subheader("Quick Calculator")
-    expr = st.text_input("Expression (e.g., 12*(5+3)/4)")
-    if st.button("Compute") and expr.strip():
-        st.write(calculator(expr))
