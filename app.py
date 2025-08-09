@@ -11,6 +11,8 @@ st.title("🧠 Cognitive Companion Agent v0.2")
 
 with st.sidebar:
     st.header("Memory Ops")
+    st.caption("💡 Tip: Add key facts here so the AI can recall them later. "
+               "Use the retrieval preview below to see what's in memory.")
     note = st.text_area("Add memory / fact")
     c1, c2 = st.columns(2)
     with c1:
